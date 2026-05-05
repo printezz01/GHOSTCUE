@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Environment
+.env
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Audio temp files
+*.wav
+*.mp3
+*.ogg
+
+# IDE
+.vscode/
+.idea/
+
+# Output (keep structure, ignore generated files)
+output/reports/*.pdf
+!output/reports/.gitkeep
+
+# Whisper model cache
+models/

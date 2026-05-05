@@ -1,0 +1,66 @@
+# ─────────────────────────────────────────────────────────
+# GhostCue Cognitive RAM — Candidate YAML Schema
+# ─────────────────────────────────────────────────────────
+# Every candidate gets a YAML file following this structure.
+# The agent loop reads and writes these files on every cycle.
+# Fields marked "auto" are populated by the system, not the user.
+
+candidate_id: ""              # auto — UUID v4, generated on resume drop
+name: ""                      # auto — extracted from resume
+email: ""                     # auto — extracted from resume (if found)
+phone: ""                     # auto — extracted from resume (if found)
+created_at: ""                # auto — ISO 8601 timestamp
+
+# ── Resume Claims (populated by resume/parser.py) ──
+resume_claims:
+  skills: []                  # e.g. ["Python", "AWS", "PostgreSQL", "React"]
+  years_experience: 0         # total years of professional experience
+  education: []               # e.g. [{degree: "B.Tech CS", institution: "IIT Delhi", year: 2020}]
+  projects: []                # e.g. [{name: "EcomAPI", tech_stack: ["Node.js", "MongoDB"], role: "Lead"}]
+  certifications: []          # e.g. ["AWS Solutions Architect", "CKA"]
+  summary: ""                 # one-paragraph professional summary
+
+# ── Generated Questions (populated by resume/question-gen.py) ──
+generated_questions:
+  technical: []               # 3-4 technical depth questions
+  system_design: []           # 2-3 system design questions
+  behavioral: []              # 2-3 behavioral/STAR questions
+  role_specific: []           # 1-2 questions tied to specific resume claims
+
+# ── Interview Sessions (appended per round) ──
+sessions:
+  - session_id: ""            # auto — UUID v4
+    round_number: 1           # auto — increments per session
+    started_at: ""            # auto — ISO 8601
+    ended_at: ""              # auto — ISO 8601
+    interviewer: ""           # optional — set by interviewer
+    transcript_path: ""       # auto — path to full transcript file
+    transcript_chunks: []     # auto — array of {timestamp, speaker, text}
+
+    # Alerts fired during session
+    flagged_contradictions: []    # [{timestamp, statement, evidence, severity}]
+    pressure_points_fired: []     # [{timestamp, question_suggested, reason}]
+    coverage_gaps_alerted: []     # [{timestamp, topic, message}]
+
+    # Coverage checklist — updated in real time
+    coverage_checklist:
+      technical_depth: false
+      system_design: false
+      behavioral: false
+      culture_fit: false
+
+    # Post-session scoring (populated after session end)
+    scoring:
+      integrity_score: null       # 0-100
+      technical_depth_score: null # 0-100
+      resume_honesty_score: null  # 0-100
+      communication_score: null   # 0-100
+      overall_fit_score: null     # 0-100
+    
+    report_path: ""               # auto — path to generated PDF
+    report_status: "pending"      # pending | draft | approved
+    approved_at: ""               # ISO 8601 — set when interviewer approves
+
+# ── Cross-Session Summary (auto-generated for round 2+) ──
+cross_session_summary: ""         # brief comparing claims across rounds
+cross_session_flags: []           # [{flag, round_1_statement, round_2_statement}]

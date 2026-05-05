@@ -1,0 +1,34 @@
+# GhostCue Python Dependencies
+# Requires Python 3.10+
+
+# Audio capture & transcription
+faster-whisper>=1.0.0
+# pyaudio removed — sounddevice covers the same functionality without needing C++ build tools
+sounddevice>=0.4.6
+
+# Messaging interfaces
+python-telegram-bot>=20.7
+twilio>=9.0.0
+
+# LLM integration
+langchain>=0.1.0
+openai>=1.12.0
+
+# CLI interface
+rich>=13.7.0
+
+# Data handling
+pyyaml>=6.0.1
+pypdf2>=3.0.1
+
+# Reporting & visualization
+matplotlib>=3.8.0
+reportlab>=4.1.0
+fpdf2>=2.7.8
+
+# WebSocket client (for connecting to agent loop)
+websockets>=12.0
+
+# Web framework (WhatsApp webhook)
+flask>=3.0.0
+python-dotenv>=1.0.0
