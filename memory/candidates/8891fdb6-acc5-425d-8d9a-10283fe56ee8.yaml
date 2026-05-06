@@ -6,22 +6,22 @@ created_at: '2026-05-06T00:58:07.932672'
 source_resume: arjun_mehta_resume.pdf
 resume_claims:
   skills:
-    - Python
-    - Javascript
-    - Java
-    - Go
-    - React
-    - Node.Js
-    - Aws
-    - Docker
-    - Kubernetes
-    - Terraform
-    - Postgresql
-    - Mongodb
-    - Redis
-    - Sql
-    - Graphql
-    - Machine Learning
+  - Python
+  - Javascript
+  - Java
+  - Go
+  - React
+  - Node.Js
+  - Aws
+  - Docker
+  - Kubernetes
+  - Terraform
+  - Postgresql
+  - Mongodb
+  - Redis
+  - Sql
+  - Graphql
+  - Machine Learning
   years_experience: 0
   education: []
   projects: []
@@ -33,123 +33,279 @@ generated_questions:
   behavioral: []
   role_specific: []
 sessions:
-  - session_id: 9e3f6d85-4ba8-4d1d-baaf-13d3cdb46c90
-    round_number: 1
-    started_at: '2026-05-05T19:35:39.973Z'
-    ended_at: ''
-    interviewer: Test User
-    transcript_path: ''
-    transcript_chunks:
-      - index: 1
-        timestamp: '2026-05-05T19:35:40.480Z'
-        speaker: candidate
-        text: I think maybe the team did something with Python, sort of, I guess we used it
-      - index: 2
-        timestamp: '2026-05-05T19:35:41.473Z'
-        speaker: candidate
-        text: I have 2 years of experience working with databases
-    flagged_contradictions: []
-    pressure_points_fired:
-      - timestamp: '2026-05-05T19:35:40.858Z'
-        message: Ask for a specific example or metric
-        evidence: Multiple vague qualifiers detected (5)
-        severity: low
-    coverage_gaps_alerted: []
-    coverage_checklist:
-      technical_depth: false
-      system_design: false
-      behavioral: false
-      culture_fit: false
-    scoring:
-      integrity_score: null
-      technical_depth_score: null
-      resume_honesty_score: null
-      communication_score: null
-      overall_fit_score: null
-    report_path: ''
-    report_status: pending
-    approved_at: ''
-  - session_id: aad06f3e-1760-4456-b29a-e0a260fec8ae
-    round_number: 2
-    started_at: '2026-05-05T19:39:09.729Z'
-    ended_at: ''
-    interviewer: Test
-    transcript_path: ''
-    transcript_chunks:
-      - index: 1
-        timestamp: '2026-05-06T01:09:27.759526'
-        speaker: interviewer
-        text: So tell me about your experience with Python and distributed systems.
-      - index: 2
-        timestamp: '2026-05-06T01:09:33.281280'
-        speaker: candidate
-        text: I think I have been working with Python for maybe like sort of 3 years I guess.
-      - index: 3
-        timestamp: '2026-05-06T01:09:38.795947'
-        speaker: interviewer
-        text: Can you tell me about a specific project?
-      - index: 4
-        timestamp: '2026-05-06T01:09:44.314519'
-        speaker: candidate
-        text: The team built a recommendation engine. We used Python and some machine learning stuff.
-      - index: 5
-        timestamp: '2026-05-06T01:09:49.841307'
-        speaker: interviewer
-        text: What was your specific role in that project?
-      - index: 6
-        timestamp: '2026-05-06T01:09:55.356969'
-        speaker: candidate
-        text: I was involved in the backend development and some of the data pipeline work.
-      - index: 7
-        timestamp: '2026-05-06T01:10:00.880361'
-        speaker: interviewer
-        text: How did you handle scaling the system?
-      - index: 8
-        timestamp: '2026-05-06T01:10:06.407419'
-        speaker: candidate
-        text: I have 2 years of experience with databases and I designed the sharding strategy for PostgreSQL.
-      - index: 9
-        timestamp: '2026-05-06T01:10:11.933004'
-        speaker: interviewer
-        text: Earlier you mentioned 3 years of Python experience. Your resume says 6 years. Can you clarify?
-      - index: 10
-        timestamp: '2026-05-06T01:10:17.458954'
-        speaker: candidate
-        text: Oh right, I meant 3 years at my current company. Total experience is longer.
-      - index: 11
-        timestamp: '2026-05-06T01:10:22.970846'
-        speaker: interviewer
-        text: Tell me about a time you faced a difficult technical challenge.
-      - index: 12
-        timestamp: '2026-05-06T01:10:28.498315'
-        speaker: candidate
-        text: >-
-          We had a production incident where the recommendation engine went down. I led the debugging effort and found a
-          memory leak in our Redis connection pool.
-    flagged_contradictions: []
-    pressure_points_fired:
-      - timestamp: '2026-05-05T19:39:37.571Z'
-        message: Ask for a specific example or metric
-        evidence: Multiple vague qualifiers detected (4)
-        severity: low
-      - timestamp: '2026-05-05T19:39:47.590Z'
-        message: Ask about their specific role and contribution
-        evidence: Candidate deflected to team without stating personal role
-        severity: medium
-    coverage_gaps_alerted: []
-    coverage_checklist:
-      technical_depth: true
-      system_design: true
-      behavioral: true
-      culture_fit: false
-    scoring:
-      integrity_score: null
-      technical_depth_score: null
-      resume_honesty_score: null
-      communication_score: null
-      overall_fit_score: null
-    report_path: ''
-    report_status: pending
-    approved_at: ''
+- session_id: 9e3f6d85-4ba8-4d1d-baaf-13d3cdb46c90
+  round_number: 1
+  started_at: '2026-05-05T19:35:39.973Z'
+  ended_at: ''
+  interviewer: Test User
+  transcript_path: ''
+  transcript_chunks:
+  - index: 1
+    timestamp: '2026-05-05T19:35:40.480Z'
+    speaker: candidate
+    text: I think maybe the team did something with Python, sort of, I guess we used
+      it
+  - index: 2
+    timestamp: '2026-05-05T19:35:41.473Z'
+    speaker: candidate
+    text: I have 2 years of experience working with databases
+  flagged_contradictions: []
+  pressure_points_fired:
+  - timestamp: '2026-05-05T19:35:40.858Z'
+    message: Ask for a specific example or metric
+    evidence: Multiple vague qualifiers detected (5)
+    severity: low
+  coverage_gaps_alerted: []
+  coverage_checklist:
+    technical_depth: false
+    system_design: false
+    behavioral: false
+    culture_fit: false
+  scoring:
+    integrity_score: null
+    technical_depth_score: null
+    resume_honesty_score: null
+    communication_score: null
+    overall_fit_score: null
+  report_path: ''
+  report_status: pending
+  approved_at: ''
+- session_id: aad06f3e-1760-4456-b29a-e0a260fec8ae
+  round_number: 2
+  started_at: '2026-05-05T19:39:09.729Z'
+  ended_at: ''
+  interviewer: Test
+  transcript_path: ''
+  transcript_chunks:
+  - index: 1
+    timestamp: '2026-05-06T01:09:27.759526'
+    speaker: interviewer
+    text: So tell me about your experience with Python and distributed systems.
+  - index: 2
+    timestamp: '2026-05-06T01:09:33.281280'
+    speaker: candidate
+    text: I think I have been working with Python for maybe like sort of 3 years I
+      guess.
+  - index: 3
+    timestamp: '2026-05-06T01:09:38.795947'
+    speaker: interviewer
+    text: Can you tell me about a specific project?
+  - index: 4
+    timestamp: '2026-05-06T01:09:44.314519'
+    speaker: candidate
+    text: The team built a recommendation engine. We used Python and some machine
+      learning stuff.
+  - index: 5
+    timestamp: '2026-05-06T01:09:49.841307'
+    speaker: interviewer
+    text: What was your specific role in that project?
+  - index: 6
+    timestamp: '2026-05-06T01:09:55.356969'
+    speaker: candidate
+    text: I was involved in the backend development and some of the data pipeline
+      work.
+  - index: 7
+    timestamp: '2026-05-06T01:10:00.880361'
+    speaker: interviewer
+    text: How did you handle scaling the system?
+  - index: 8
+    timestamp: '2026-05-06T01:10:06.407419'
+    speaker: candidate
+    text: I have 2 years of experience with databases and I designed the sharding
+      strategy for PostgreSQL.
+  - index: 9
+    timestamp: '2026-05-06T01:10:11.933004'
+    speaker: interviewer
+    text: Earlier you mentioned 3 years of Python experience. Your resume says 6 years.
+      Can you clarify?
+  - index: 10
+    timestamp: '2026-05-06T01:10:17.458954'
+    speaker: candidate
+    text: Oh right, I meant 3 years at my current company. Total experience is longer.
+  - index: 11
+    timestamp: '2026-05-06T01:10:22.970846'
+    speaker: interviewer
+    text: Tell me about a time you faced a difficult technical challenge.
+  - index: 12
+    timestamp: '2026-05-06T01:10:28.498315'
+    speaker: candidate
+    text: We had a production incident where the recommendation engine went down.
+      I led the debugging effort and found a memory leak in our Redis connection pool.
+  flagged_contradictions: []
+  pressure_points_fired:
+  - timestamp: '2026-05-05T19:39:37.571Z'
+    message: Ask for a specific example or metric
+    evidence: Multiple vague qualifiers detected (4)
+    severity: low
+  - timestamp: '2026-05-05T19:39:47.590Z'
+    message: Ask about their specific role and contribution
+    evidence: Candidate deflected to team without stating personal role
+    severity: medium
+  coverage_gaps_alerted: []
+  coverage_checklist:
+    technical_depth: true
+    system_design: true
+    behavioral: true
+    culture_fit: false
+  scoring:
+    integrity_score: null
+    technical_depth_score: null
+    resume_honesty_score: null
+    communication_score: null
+    overall_fit_score: null
+  report_path: ''
+  report_status: pending
+  approved_at: ''
+- session_id: 89925793-0fe4-478b-948a-164d0f1eea4d
+  round_number: 3
+  started_at: '2026-05-06T06:51:25.151Z'
+  ended_at: ''
+  interviewer: Prince
+  transcript_path: ''
+  transcript_chunks:
+  - index: 1
+    timestamp: '2026-05-06T12:23:14.858424'
+    speaker: interviewer
+    text: So tell me about your experience with Python and distributed systems.
+  - index: 2
+    timestamp: '2026-05-06T12:23:20.367166'
+    speaker: candidate
+    text: I think I have been working with Python for maybe like sort of 3 years I
+      guess.
+  - index: 3
+    timestamp: '2026-05-06T12:23:25.884875'
+    speaker: interviewer
+    text: Can you tell me about a specific project?
+  - index: 4
+    timestamp: '2026-05-06T12:23:31.394102'
+    speaker: candidate
+    text: The team built a recommendation engine. We used Python and some machine
+      learning stuff.
+  - index: 5
+    timestamp: '2026-05-06T12:23:36.912751'
+    speaker: interviewer
+    text: What was your specific role in that project?
+  - index: 6
+    timestamp: '2026-05-06T12:23:42.424621'
+    speaker: candidate
+    text: I was involved in the backend development and some of the data pipeline
+      work.
+  - index: 7
+    timestamp: '2026-05-06T12:23:47.934639'
+    speaker: interviewer
+    text: How did you handle scaling the system?
+  - index: 8
+    timestamp: '2026-05-06T12:23:53.457459'
+    speaker: candidate
+    text: I have 2 years of experience with databases and I designed the sharding
+      strategy for PostgreSQL.
+  - index: 9
+    timestamp: '2026-05-06T12:23:58.982757'
+    speaker: interviewer
+    text: Earlier you mentioned 3 years of Python experience. Your resume says 6 years.
+      Can you clarify?
+  - index: 10
+    timestamp: '2026-05-06T12:24:04.504432'
+    speaker: candidate
+    text: Oh right, I meant 3 years at my current company. Total experience is longer.
+  - index: 11
+    timestamp: '2026-05-06T12:24:10.021946'
+    speaker: interviewer
+    text: Tell me about a time you faced a difficult technical challenge.
+  - index: 12
+    timestamp: '2026-05-06T12:24:15.533215'
+    speaker: candidate
+    text: We had a production incident where the recommendation engine went down.
+      I led the debugging effort and found a memory leak in our Redis connection pool.
+  flagged_contradictions: []
+  pressure_points_fired:
+  - timestamp: '2026-05-06T06:53:22.536Z'
+    message: Ask for a specific example or metric
+    evidence: Multiple vague qualifiers detected (4)
+    severity: low
+  - timestamp: '2026-05-06T06:53:32.560Z'
+    message: Ask about their specific role and contribution
+    evidence: Candidate deflected to team without stating personal role
+    severity: medium
+  coverage_gaps_alerted: []
+  coverage_checklist:
+    technical_depth: true
+    system_design: true
+    behavioral: true
+    culture_fit: false
+  scoring:
+    integrity_score: 73
+    technical_depth_score: 43
+    resume_honesty_score: 100
+    communication_score: 77
+    overall_fit_score: 75
+  report_path: C:\Users\Prince\Downloads\GHOSTCUE\output\reports\8891fdb6-acc5-425d-8d9a-10283fe56ee8_20260506_122705.pdf
+  report_status: draft
+  approved_at: ''
+  gap_analysis:
+  - claim: 'Skill: Python'
+    verdict: confirmed
+    evidence: Mentioned 9 time(s) in transcript
+    confidence: 0.8
+  - claim: 'Skill: Javascript'
+    verdict: vague
+    evidence: Not mentioned in transcript
+    confidence: 0.2
+  - claim: 'Skill: Java'
+    verdict: vague
+    evidence: Not mentioned in transcript
+    confidence: 0.2
+  - claim: 'Skill: Go'
+    verdict: vague
+    evidence: Not mentioned in transcript
+    confidence: 0.2
+  - claim: 'Skill: React'
+    verdict: vague
+    evidence: Not mentioned in transcript
+    confidence: 0.2
+  - claim: 'Skill: Node.Js'
+    verdict: vague
+    evidence: Not mentioned in transcript
+    confidence: 0.2
+  - claim: 'Skill: Aws'
+    verdict: vague
+    evidence: Not mentioned in transcript
+    confidence: 0.2
+  - claim: 'Skill: Docker'
+    verdict: vague
+    evidence: Not mentioned in transcript
+    confidence: 0.2
+  - claim: 'Skill: Kubernetes'
+    verdict: vague
+    evidence: Not mentioned in transcript
+    confidence: 0.2
+  - claim: 'Skill: Terraform'
+    verdict: vague
+    evidence: Not mentioned in transcript
+    confidence: 0.2
+  - claim: 'Skill: Postgresql'
+    verdict: vague
+    evidence: Mentioned 2 time(s) in transcript
+    confidence: 0.5
+  - claim: 'Skill: Mongodb'
+    verdict: vague
+    evidence: Not mentioned in transcript
+    confidence: 0.2
+  - claim: 'Skill: Redis'
+    verdict: vague
+    evidence: Mentioned 2 time(s) in transcript
+    confidence: 0.5
+  - claim: 'Skill: Sql'
+    verdict: vague
+    evidence: Mentioned 2 time(s) in transcript
+    confidence: 0.5
+  - claim: 'Skill: Graphql'
+    verdict: vague
+    evidence: Not mentioned in transcript
+    confidence: 0.2
+  - claim: 'Skill: Machine Learning'
+    verdict: vague
+    evidence: Mentioned 2 time(s) in transcript
+    confidence: 0.5
 cross_session_summary: ''
 cross_session_flags: []
