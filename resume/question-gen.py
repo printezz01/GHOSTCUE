@@ -2,8 +2,9 @@
 resume/question-gen.py — GhostCue Interview Question Generator
 
 Takes parsed resume data from Cognitive RAM and generates custom
-interview questions using GPT-4. Questions are weighted by experience
-level and tailored to the candidate's specific tech stack and projects.
+interview questions using Groq (groq.com) with llama-3.3-70b-versatile.
+Questions are weighted by experience level and tailored to the candidate's
+specific tech stack and projects.
 
 Usage:
     python resume/question-gen.py <candidate_id>
@@ -80,16 +81,17 @@ def load_candidate(candidate_id):
         return yaml.safe_load(f)
 
 
-def generate_questions_gpt4(candidate):
-    """Generate custom questions using GPT-4."""
-    api_key = os.getenv("OPENAI_API_KEY", "")
-    
-    if not api_key or api_key.startswith("sk-your"):
-        print("[QGEN] WARNING: No valid OPENAI_API_KEY — using template questions")
+def generate_questions_groq(candidate):
+    """Generate custom questions using Groq (groq.com) with llama-3.3-70b-versatile."""
+    api_key = os.getenv("GROQ_API_KEY", "")
+
+    # Groq keys start with gsk_ — reject empty or placeholder values
+    if not api_key or api_key.startswith("your_") or api_key == "":
+        print("[QGEN] WARNING: No valid GROQ_API_KEY - using template questions")
         return generate_fallback_questions(candidate)
-    
+
     claims = candidate.get("resume_claims", {})
-    
+
     prompt = QUESTION_PROMPT.format(
         name=candidate.get("name", "Unknown"),
         years=claims.get("years_experience", 0),
@@ -99,12 +101,13 @@ def generate_questions_gpt4(candidate):
         certifications=", ".join(claims.get("certifications", [])),
         summary=claims.get("summary", "No summary available")
     )
-    
+
     try:
-        client = OpenAI(api_key=api_key)
-        
+        # Groq is OpenAI-compatible — same SDK, different base_url and key
+        client = OpenAI(api_key=api_key, base_url="https://api.groq.com/openai/v1")
+
         response = client.chat.completions.create(
-            model="gpt-4",
+            model="llama-3.3-70b-versatile",
             messages=[
                 {
                     "role": "system",
@@ -118,28 +121,28 @@ def generate_questions_gpt4(candidate):
             temperature=0.7,  # some creativity for diverse questions
             max_tokens=2000
         )
-        
+
         raw = response.choices[0].message.content.strip()
-        
+
         # Handle markdown-wrapped JSON
         if raw.startswith("```"):
             raw = raw.split("\n", 1)[1]
             raw = raw.rsplit("```", 1)[0]
-        
+
         questions = json.loads(raw)
-        
+
         total = sum(len(v) for v in questions.values())
         print(f"[QGEN] ✅ Generated {total} questions for {candidate.get('name', 'Unknown')}")
         return questions
-        
+
     except Exception as e:
-        print(f"[QGEN] ERROR calling GPT-4: {e}")
+        print(f"[QGEN] ERROR calling Groq: {e}")
         return generate_fallback_questions(candidate)
 
 
 def generate_fallback_questions(candidate):
     """
-    Generate template-based questions when GPT-4 is unavailable.
+    Generate template-based questions when Groq is unavailable.
     Still personalized — uses candidate's actual skills and projects.
     """
     claims = candidate.get("resume_claims", {})
@@ -232,13 +235,13 @@ def generate_for_candidate(candidate_id):
     candidate = load_candidate(candidate_id)
     if not candidate:
         return None
-    
+
     print(f"\n[QGEN] Generating questions for: {candidate.get('name', 'Unknown')}")
     print(f"[QGEN] {'─' * 50}")
-    
-    questions = generate_questions_gpt4(candidate)
+
+    questions = generate_questions_groq(candidate)
     save_questions(candidate_id, questions)
-    
+
     return questions
 
 

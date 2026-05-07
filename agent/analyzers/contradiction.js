@@ -1,13 +1,14 @@
 /**
  * agent/analyzers/contradiction.js — Detects candidate contradictions
- * 
+ *
  * Compares new transcript statements against:
  * 1. Resume claims stored in Cognitive RAM
  * 2. Previous statements from earlier in the same session
  * 3. Statements from prior interview rounds (cross-session)
- * 
- * Uses GPT-4 with SOUL.md rules for deep semantic comparison.
- * Contradictions are flagged as "confirmed" or "possible" per SOUL.md Neutrality Protocol.
+ *
+ * Uses Groq (groq.com, llama-3.3-70b-versatile) with SOUL.md rules for deep
+ * semantic comparison. Contradictions are flagged as "confirmed" or "possible"
+ * per SOUL.md Neutrality Protocol.
  */
 
 import OpenAI from 'openai';
@@ -44,16 +45,18 @@ export async function analyze(chunk, candidate, soulRules) {
     `Summary: ${resumeClaims.summary || 'no summary'}`
   ].join('\n');
 
-  const apiKey = process.env.OPENAI_API_KEY || '';
-  if (!apiKey || apiKey.startsWith('sk-your')) {
+  const apiKey = process.env.GROQ_API_KEY || '';
+  // Groq keys start with gsk_ — reject empty or placeholder values
+  if (!apiKey || apiKey.startsWith('your_') || apiKey === '') {
     return heuristicAnalysis(chunk, resumeClaims, recentStatements);
   }
 
   try {
-    const client = new OpenAI({ apiKey });
+    // Groq is OpenAI-compatible — same SDK, different baseURL and key
+    const client = new OpenAI({ apiKey, baseURL: 'https://api.groq.com/openai/v1' });
 
     const response = await client.chat.completions.create({
-      model: 'gpt-4',
+      model: 'llama-3.3-70b-versatile',
       messages: [
         {
           role: 'system',
@@ -100,13 +103,13 @@ Return {"contradictions": []} if no contradictions found.`
       timestamp: new Date().toISOString()
     }));
   } catch (err) {
-    console.error(`[CONTRADICTION] GPT-4 error: ${err.message}`);
+    console.error(`[CONTRADICTION] Groq error: ${err.message}`);
     return heuristicAnalysis(chunk, resumeClaims, recentStatements);
   }
 }
 
 /**
- * Fallback heuristic contradiction detection when GPT-4 is unavailable.
+ * Fallback heuristic contradiction detection when Groq is unavailable.
  * Checks for numeric inconsistencies and keyword mismatches.
  */
 function heuristicAnalysis(chunk, resumeClaims, priorStatements) {

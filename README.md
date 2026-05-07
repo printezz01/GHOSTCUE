@@ -109,6 +109,8 @@ pip install -r requirements.txt
 
 # Configure (copy and edit with your API keys)
 cp .env.example .env
+# Get a free Groq API key at https://console.groq.com/keys
+# Add it to .env as: GROQ_API_KEY=gsk_...
 ```
 
 ### Run
@@ -216,7 +218,7 @@ GHOSTCUE/
 |-------|-----------|
 | Agent Loop | Node.js 22, WebSocket (ws), Express |
 | Audio | sounddevice, faster-whisper (tiny.en) |
-| LLM | Grok (xAI) via OpenAI SDK (analysis, parsing) |
+| LLM | Groq (groq.com) + Llama 3.3 70B via OpenAI-compatible SDK |
 | Storage | YAML files (js-yaml + PyYAML) |
 | Reporting | matplotlib, reportlab |
 | WhatsApp | Twilio API, Flask |

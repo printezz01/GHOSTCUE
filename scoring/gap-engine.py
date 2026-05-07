@@ -52,14 +52,15 @@ def extract_full_transcript(candidate):
     return "\n".join(all_text)
 
 
-def analyze_with_gpt4(resume_claims, transcript):
+def analyze_with_groq(resume_claims, transcript):
     """
-    Use GPT-4 to map resume claims to transcript evidence.
+    Use Groq (groq.com) with llama-3.3-70b-versatile to map resume claims to transcript evidence.
     Returns a list of claim assessments.
     """
-    api_key = os.getenv("OPENAI_API_KEY", "")
-    if not api_key or api_key.startswith("sk-your"):
-        print("[GAP] WARNING: No valid OPENAI_API_KEY - using heuristic analysis")
+    api_key = os.getenv("GROQ_API_KEY", "")
+    # Groq keys start with gsk_ — reject empty or placeholder values
+    if not api_key or api_key.startswith("your_") or api_key == "":
+        print("[GAP] WARNING: No valid GROQ_API_KEY - using heuristic analysis")
         return heuristic_analysis(resume_claims, transcript)
 
     # Build claims summary
@@ -94,9 +95,10 @@ Return JSON array:
 Return ONLY valid JSON, no markdown."""
 
     try:
-        client = OpenAI(api_key=api_key)
+        # Groq is OpenAI-compatible — same SDK, different base_url and key
+        client = OpenAI(api_key=api_key, base_url="https://api.groq.com/openai/v1")
         response = client.chat.completions.create(
-            model="gpt-4",
+            model="llama-3.3-70b-versatile",
             messages=[
                 {"role": "system", "content": "You are an evidence-based interview analyst. Return only JSON."},
                 {"role": "user", "content": prompt}
@@ -109,13 +111,13 @@ Return ONLY valid JSON, no markdown."""
             raw = raw.split("\n", 1)[1].rsplit("```", 1)[0]
         return json.loads(raw)
     except Exception as e:
-        print(f"[GAP] GPT-4 error: {e}")
+        print(f"[GAP] Groq error: {e}")
         return heuristic_analysis(resume_claims, transcript)
 
 
 def heuristic_analysis(resume_claims, transcript):
     """
-    Fallback gap analysis using keyword matching.
+    Fallback gap analysis using keyword matching when Groq is unavailable.
     Checks if resume skills/projects are mentioned in the transcript.
     """
     transcript_lower = transcript.lower()
@@ -213,7 +215,7 @@ def run_gap_analysis(candidate_id):
         transcript = "(no transcript available)"
 
     resume_claims = candidate.get("resume_claims", {})
-    results = analyze_with_gpt4(resume_claims, transcript)
+    results = analyze_with_groq(resume_claims, transcript)
 
     # Count verdicts
     confirmed = sum(1 for r in results if r["verdict"] == "confirmed")

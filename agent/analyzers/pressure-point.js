@@ -1,11 +1,11 @@
 /**
  * agent/analyzers/pressure-point.js — Detects shallow answers
- * 
+ *
  * Analyzes transcript chunks to identify when a candidate gives a vague,
  * surface-level, or incomplete answer that needs a follow-up probe.
- * 
- * Uses GPT-4 with SOUL.md rules to generate actionable nudges
- * (max 12 words per SOUL.md Nudge Format Rules).
+ *
+ * Uses Groq (groq.com, llama-3.3-70b-versatile) with SOUL.md rules to generate
+ * actionable nudges (max 12 words per SOUL.md Nudge Format Rules).
  */
 
 import OpenAI from 'openai';
@@ -44,18 +44,20 @@ export async function analyze(chunk, soulRules, context = {}) {
     return [];
   }
 
-  // Call GPT-4 for deeper analysis
-  const apiKey = process.env.OPENAI_API_KEY || '';
-  if (!apiKey || apiKey.startsWith('sk-your')) {
+  // Call Groq for deeper analysis
+  const apiKey = process.env.GROQ_API_KEY || '';
+  // Groq keys start with gsk_ — reject empty or placeholder values
+  if (!apiKey || apiKey.startsWith('your_') || apiKey === '') {
     // Fallback: use heuristic analysis when no API key
     return heuristicAnalysis(chunk, context);
   }
 
   try {
-    const client = new OpenAI({ apiKey });
+    // Groq is OpenAI-compatible — same SDK, different baseURL and key
+    const client = new OpenAI({ apiKey, baseURL: 'https://api.groq.com/openai/v1' });
 
     const response = await client.chat.completions.create({
-      model: 'gpt-4',
+      model: 'llama-3.3-70b-versatile',
       messages: [
         {
           role: 'system',
@@ -93,13 +95,13 @@ Return JSON: { "is_shallow": true/false, "nudge": "Ask about..." or null, "reaso
 
     return [];
   } catch (err) {
-    console.error(`[PRESSURE] GPT-4 error: ${err.message}`);
+    console.error(`[PRESSURE] Groq error: ${err.message}`);
     return heuristicAnalysis(chunk, context);
   }
 }
 
 /**
- * Fallback heuristic analysis when GPT-4 is unavailable.
+ * Fallback heuristic analysis when Groq is unavailable.
  * Checks for common shallow answer patterns.
  */
 function heuristicAnalysis(chunk, context = {}) {

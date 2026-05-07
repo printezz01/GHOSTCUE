@@ -2,7 +2,7 @@
 resume/parser.py — GhostCue Resume Parser
 
 Extracts structured data from candidate PDF resumes using PyPDF2 for text
-extraction and GPT-4 for intelligent parsing. Writes parsed data as YAML
+extraction and Groq (groq.com) for intelligent parsing. Writes parsed data as YAML
 to /memory/candidates/ (Cognitive RAM).
 
 Usage:
@@ -42,7 +42,7 @@ INPUT_DIR = PROJECT_ROOT / "input" / "resumes"
 MEMORY_DIR = PROJECT_ROOT / "memory" / "candidates"
 MEMORY_DIR.mkdir(parents=True, exist_ok=True)
 
-# GPT-4 prompt for structured resume extraction
+# Groq prompt for structured resume extraction
 EXTRACTION_PROMPT = """You are a resume parsing engine. Extract structured data from the following resume text.
 
 Return ONLY valid JSON with this exact structure (no markdown, no explanation):
@@ -102,23 +102,26 @@ def extract_text_from_pdf(pdf_path):
         return ""
 
 
-def parse_with_gpt4(resume_text):
+def parse_with_groq(resume_text):
     """
-    Send extracted resume text to GPT-4 for structured parsing.
+    Send extracted resume text to Groq (groq.com) for structured parsing.
+    Uses llama-3.3-70b-versatile via Groq's OpenAI-compatible endpoint.
     Returns a dict matching the JSON schema defined in EXTRACTION_PROMPT.
-    Falls back to a minimal scaffold if GPT-4 is unavailable.
+    Falls back to a minimal scaffold if Groq is unavailable.
     """
-    api_key = os.getenv("OPENAI_API_KEY", "")
+    api_key = os.getenv("GROQ_API_KEY", "")
 
-    if not api_key or api_key.startswith("sk-your"):
-        print("[PARSER] WARNING: No valid OPENAI_API_KEY - using fallback extraction")
+    # Groq keys start with gsk_ — reject empty or placeholder values
+    if not api_key or api_key.startswith("your_") or api_key == "":
+        print("[PARSER] WARNING: No valid GROQ_API_KEY - using fallback extraction")
         return fallback_extraction(resume_text)
 
     try:
-        client = OpenAI(api_key=api_key)
+        # Groq is OpenAI-compatible — same SDK, different base_url and key
+        client = OpenAI(api_key=api_key, base_url="https://api.groq.com/openai/v1")
 
         response = client.chat.completions.create(
-            model="gpt-4",
+            model="llama-3.3-70b-versatile",
             messages=[
                 {
                     "role": "system",
@@ -135,28 +138,28 @@ def parse_with_gpt4(resume_text):
 
         raw_response = response.choices[0].message.content.strip()
 
-        # Handle markdown-wrapped JSON (GPT sometimes wraps in ```json blocks)
+        # Handle markdown-wrapped JSON (model sometimes wraps in ```json blocks)
         if raw_response.startswith("```"):
             raw_response = raw_response.split("\n", 1)[1]  # remove first line
             raw_response = raw_response.rsplit("```", 1)[0]  # remove last ```
 
         parsed = json.loads(raw_response)
-        print(f"[PARSER] GPT-4 extracted: {parsed.get('name', 'Unknown')} | "
+        print(f"[PARSER] Groq extracted: {parsed.get('name', 'Unknown')} | "
               f"{len(parsed.get('skills', []))} skills | "
               f"{len(parsed.get('projects', []))} projects")
         return parsed
 
     except json.JSONDecodeError as e:
-        print(f"[PARSER] ERROR: GPT-4 returned invalid JSON: {e}")
+        print(f"[PARSER] ERROR: Groq returned invalid JSON: {e}")
         return fallback_extraction(resume_text)
     except Exception as e:
-        print(f"[PARSER] ERROR calling GPT-4: {e}")
+        print(f"[PARSER] ERROR calling Groq: {e}")
         return fallback_extraction(resume_text)
 
 
 def fallback_extraction(text):
     """
-    Basic regex/heuristic extraction when GPT-4 is unavailable.
+    Basic regex/heuristic extraction when Groq is unavailable.
     Extracts what it can from raw text - better than nothing.
     """
     import re
@@ -244,7 +247,7 @@ def write_candidate_yaml(parsed_data, source_pdf):
 
 def parse_resume(pdf_path):
     """
-    Full pipeline: PDF -> text -> GPT-4 -> YAML.
+    Full pipeline: PDF -> text -> Groq -> YAML.
     Returns (candidate_id, parsed_data) tuple.
     """
     pdf_path = Path(pdf_path)
@@ -266,8 +269,8 @@ def parse_resume(pdf_path):
         print("[PARSER] Skipping - no text could be extracted")
         return None, None
 
-    # Step 2: Parse with GPT-4 (or fallback)
-    parsed = parse_with_gpt4(text)
+    # Step 2: Parse with Groq (or fallback)
+    parsed = parse_with_groq(text)
 
     # Step 3: Write to Cognitive RAM
     candidate_id = write_candidate_yaml(parsed, pdf_path)
