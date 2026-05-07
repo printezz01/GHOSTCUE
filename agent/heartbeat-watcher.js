@@ -99,21 +99,19 @@ function startResumeWatcher() {
         console.error(`[HEARTBEAT] Resume parser exited with code ${code}`);
         return;
       }
-      console.log('[HEARTBEAT] Resume parsing complete — extracting candidate ID...');
+      console.log('[HEARTBEAT] Parser complete — extracting candidate ID...');
 
-      // Extract the candidate ID from parser.py stdout
-      // Parser logs: "[PARSER] OK - Candidate saved: <uuid>.yaml"
-      const match = parserOutput.match(/Candidate saved:\s*([a-f0-9-]{36})\.yaml/i);
+      // Extract the candidate ID from parser.py stdout: "         ID:   <uuid>"
+      const match = parserOutput.match(/ID:\s*([a-f0-9-]{36})/i);
       if (!match) {
         console.error('[HEARTBEAT] Could not extract candidate ID from parser output — skipping question gen');
         return;
       }
 
       const candidateId = match[1];
-      console.log(`[HEARTBEAT] Candidate ID: ${candidateId} — spawning question generator...`);
+      console.log(`[HEARTBEAT] Running question-gen for: ${candidateId}`);
 
       // Step 2: Spawn question-gen.py — generates questions and updates the YAML.
-      // The YAML watcher in index.js detects this update and broadcasts questions_ready.
       const qgen = spawn('python', [
         path.join(PROJECT_ROOT, 'resume', 'question-gen.py'),
         candidateId
@@ -121,9 +119,26 @@ function startResumeWatcher() {
 
       qgen.stdout.on('data', (data) => process.stdout.write(data));
       qgen.stderr.on('data', (data) => process.stderr.write(data));
-      qgen.on('close', (qcode) => {
+
+      qgen.on('close', async (qcode) => {
         if (qcode === 0) {
-          console.log(`[HEARTBEAT] Question generation complete for ${candidateId}`);
+          console.log(`[HEARTBEAT] Questions generated — broadcasting to clients`);
+          
+          // Internal call to the broadcast endpoint we added to index.js
+          try {
+            const port = process.env.PORT || 3000;
+            const res = await fetch(`http://localhost:${port}/api/candidates/${candidateId}/broadcast`, {
+              method: 'POST'
+            });
+            const json = await res.json();
+            if (res.ok) {
+              console.log(`[HEARTBEAT] Broadcast successful: ${json.broadcast_to} client(s) notified`);
+            } else {
+              console.error(`[HEARTBEAT] Broadcast failed: ${json.error}`);
+            }
+          } catch (err) {
+            console.error(`[HEARTBEAT] Internal broadcast request failed: ${err.message}`);
+          }
         } else {
           console.error(`[HEARTBEAT] Question generator exited with code ${qcode}`);
         }
