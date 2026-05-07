@@ -133,6 +133,31 @@ python interfaces/whatsapp/bot.py
 # Then expose via: ngrok http 5002
 ```
 
+### Overlay Interface (Cluely-style floating window)
+
+The overlay is a floating panel the interviewer sees during interviews. The candidate never sees it.
+
+**Option A — Browser (no install needed):**
+```
+Open interfaces/overlay/index.html in any Chromium browser
+```
+The overlay auto-connects to `ws://localhost:3000/agent` and is fully functional standalone.
+
+**Option B — Electron (always-on-top, frameless):**
+```bash
+npm run overlay
+```
+Requires Electron (installed as optional dependency). Toggle with `Ctrl+Shift+G`.
+
+**Features:**
+- Upload resume via button (no more manual file drops)
+- Live questions panel after parsing
+- Real-time contradiction/pressure-point/coverage alerts
+- Session timer and end-session control
+- Draggable, minimizable, dark glassmorphism UI
+
+<!-- Screenshot placeholder: interfaces/overlay/screenshot.png -->
+
 ### Generate Report
 ```bash
 python scoring/pdf-report.py <candidate_id>
@@ -161,7 +186,7 @@ GHOSTCUE/
 │   ├── transcribe.py          # Whisper STT + diarization
 │   └── chunker.py             # 5-sec loop → WebSocket
 ├── resume/
-│   ├── parser.py              # PDF → GPT-4 → YAML
+|   ├── parser.py              # PDF -> Grok -> YAML
 │   └── question-gen.py        # Claims → interview questions
 ├── scoring/
 │   ├── gap-engine.py          # Claims vs transcript evidence
@@ -169,6 +194,9 @@ GHOSTCUE/
 │   ├── radar-chart.py         # 4-axis polar plot
 │   └── pdf-report.py          # Full PDF report generator
 ├── interfaces/
+│   ├── overlay/
+│   │   ├── index.html         # Cluely-style floating overlay (single-file)
+│   │   └── main.js            # Optional Electron wrapper (Phase 4)
 │   └── whatsapp/
 │       └── bot.py             # Twilio WhatsApp webhook
 ├── memory/
@@ -188,7 +216,7 @@ GHOSTCUE/
 |-------|-----------|
 | Agent Loop | Node.js 22, WebSocket (ws), Express |
 | Audio | sounddevice, faster-whisper (tiny.en) |
-| LLM | OpenAI GPT-4 (analysis, parsing) |
+| LLM | Grok (xAI) via OpenAI SDK (analysis, parsing) |
 | Storage | YAML files (js-yaml + PyYAML) |
 | Reporting | matplotlib, reportlab |
 | WhatsApp | Twilio API, Flask |
@@ -206,6 +234,7 @@ GHOSTCUE/
 | `/api/sessions/start` | POST | Start interview session |
 | `/api/sessions/end` | POST | End current session |
 | `/api/status` | GET | Daemon status |
+| `/api/upload-resume` | POST | Upload PDF resume (multipart/form-data, field: `resume`) |
 
 ### WebSocket (ws://localhost:3000/agent)
 
@@ -217,6 +246,8 @@ GHOSTCUE/
 | `alert` | Server → Client | Real-time nudge |
 | `session_start` | Server → Client | Session began |
 | `session_end` | Server → Client | Session ended |
+| `questions_ready` | Server → Client | Generated questions after resume parse |
+| `resume_uploaded` | Server → Client | Resume file received by agent |
 
 ## License
 

@@ -69,10 +69,15 @@ export function dispatch(alert) {
   }
 
   // Broadcast via WebSocket
+  // Payload shape: { event, data: { type, severity, text, message, evidence, timestamp } }
+  // The overlay expects 'text' as the display field — we include both for compatibility
   if (wss && wss.clients) {
     const payload = JSON.stringify({
       event: 'alert',
-      data: alert
+      data: {
+        ...alert,
+        text: alert.message  // Alias: overlay reads 'text', existing clients read 'message'
+      }
     });
 
     let sentCount = 0;
