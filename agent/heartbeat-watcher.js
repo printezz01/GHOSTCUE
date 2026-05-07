@@ -73,26 +73,62 @@ function startResumeWatcher() {
 
     console.log(`[HEARTBEAT] Trigger 1: Resume detected -> ${path.basename(filePath)}`);
 
+    // Always notify the registered callback (index.js uses this to set lastResumeDropTime)
     if (onResumeDropped) {
       onResumeDropped(filePath);
-    } else {
-      // Default: spawn Python parser
-      console.log('[HEARTBEAT] Spawning resume parser...');
-      const parser = spawn('python', [
-        path.join(PROJECT_ROOT, 'resume', 'parser.py'),
-        filePath
+    }
+
+    // Step 1: Spawn parser.py — extracts text + writes initial YAML to memory/candidates/
+    console.log('[HEARTBEAT] Spawning resume parser...');
+    let parserOutput = '';
+
+    const parser = spawn('python', [
+      path.join(PROJECT_ROOT, 'resume', 'parser.py'),
+      filePath
+    ], { cwd: PROJECT_ROOT });
+
+    parser.stdout.on('data', (data) => {
+      const chunk = data.toString();
+      parserOutput += chunk;
+      process.stdout.write(chunk); // pipe to main process stdout
+    });
+    parser.stderr.on('data', (data) => process.stderr.write(data));
+
+    parser.on('close', (code) => {
+      if (code !== 0) {
+        console.error(`[HEARTBEAT] Resume parser exited with code ${code}`);
+        return;
+      }
+      console.log('[HEARTBEAT] Resume parsing complete — extracting candidate ID...');
+
+      // Extract the candidate ID from parser.py stdout
+      // Parser logs: "[PARSER] OK - Candidate saved: <uuid>.yaml"
+      const match = parserOutput.match(/Candidate saved:\s*([a-f0-9-]{36})\.yaml/i);
+      if (!match) {
+        console.error('[HEARTBEAT] Could not extract candidate ID from parser output — skipping question gen');
+        return;
+      }
+
+      const candidateId = match[1];
+      console.log(`[HEARTBEAT] Candidate ID: ${candidateId} — spawning question generator...`);
+
+      // Step 2: Spawn question-gen.py — generates questions and updates the YAML.
+      // The YAML watcher in index.js detects this update and broadcasts questions_ready.
+      const qgen = spawn('python', [
+        path.join(PROJECT_ROOT, 'resume', 'question-gen.py'),
+        candidateId
       ], { cwd: PROJECT_ROOT });
 
-      parser.stdout.on('data', (data) => process.stdout.write(data));
-      parser.stderr.on('data', (data) => process.stderr.write(data));
-      parser.on('close', (code) => {
-        if (code === 0) {
-          console.log('[HEARTBEAT] Resume parsing complete');
+      qgen.stdout.on('data', (data) => process.stdout.write(data));
+      qgen.stderr.on('data', (data) => process.stderr.write(data));
+      qgen.on('close', (qcode) => {
+        if (qcode === 0) {
+          console.log(`[HEARTBEAT] Question generation complete for ${candidateId}`);
         } else {
-          console.error(`[HEARTBEAT] Resume parser exited with code ${code}`);
+          console.error(`[HEARTBEAT] Question generator exited with code ${qcode}`);
         }
       });
-    }
+    });
   });
 
   console.log(`[HEARTBEAT] Trigger 1: Watching ${RESUMES_DIR}`);
