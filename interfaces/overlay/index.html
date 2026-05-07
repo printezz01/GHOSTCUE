@@ -131,6 +131,9 @@ body{font-family:var(--font);background:transparent;color:var(--text);font-size:
 .end-btn:hover{background:rgba(229,72,77,0.2);border-color:rgba(229,72,77,0.5)}
 .banner{padding:8px 12px;font-size:11px;text-align:center;background:rgba(110,86,207,0.1);color:var(--accent);border-bottom:1px solid var(--border);display:none}
 .banner.visible{display:block}
+/* Header flash — subtle pulse when questions arrive late (overlay may be minimized) */
+@keyframes headerFlash{0%,100%{background:rgba(255,255,255,0.02)}50%{background:rgba(110,86,207,0.12)}}
+.overlay-header.flash{animation:headerFlash .6s ease 3}
 </style>
 </head>
 <body>
@@ -165,6 +168,10 @@ body{font-family:var(--font);background:transparent;color:var(--text);font-size:
     <div class="section" id="questionsSection" style="display:none">
       <div class="section-label">Questions</div>
       <div class="questions-list" id="questionsList"></div>
+      <!-- Refresh link — manual recovery if questions_ready was missed -->
+      <div style="text-align:center;margin-top:6px" id="refreshRow" style="display:none">
+        <span class="replace-link" id="refreshBtn">Refresh questions</span>
+      </div>
     </div>
 
     <!-- Live Alert Feed -->
@@ -213,6 +220,9 @@ const alertEmpty = document.getElementById('alertEmpty');
 const sessionTimer = document.getElementById('sessionTimer');
 const endBtn     = document.getElementById('endBtn');
 const banner     = document.getElementById('banner');
+const refreshBtn = document.getElementById('refreshBtn');
+const refreshRow = document.getElementById('refreshRow');
+const dragHandle = document.getElementById('dragHandle');
 
 // ── State ──
 let ws = null;
@@ -221,7 +231,8 @@ let isPinned = false;
 let isMinimized = false;
 let timerInterval = null;
 let timerStart = null;
-let candidateId = null;
+let candidateId = null;          // Most recent candidate ID (for Refresh button)
+let questionsReceivedAt = null;  // Timestamp when questions first arrived
 
 // ════════════════════════════════
 // 1. WebSocket Connection
@@ -279,14 +290,25 @@ function handleWSMessage(msg) {
       if (data?.candidate_id) candidateId = data.candidate_id;
       renderQuestions(data.questions || []);
       setUploadStatus('Questions ready', 'success');
+
+      // Flash the header if the overlay is minimized so the user notices
+      questionsReceivedAt = Date.now();
+      dragHandle.classList.remove('flash');
+      // Force reflow to restart animation if it already ran
+      void dragHandle.offsetWidth;
+      dragHandle.classList.add('flash');
+      setTimeout(() => dragHandle.classList.remove('flash'), 2000);
+
+      // Show the Refresh link so the user can manually re-fetch if needed
+      refreshRow.style.display = 'block';
+
       // Shrink upload zone to a replace link
       uploadBtn.style.display = 'none';
+      uploadSection.querySelectorAll('.replace-link').forEach(el => el.remove());
       const link = document.createElement('span');
       link.className = 'replace-link';
       link.textContent = 'Replace resume';
       link.onclick = () => fileInput.click();
-      // Remove any existing replace link first
-      uploadSection.querySelectorAll('.replace-link').forEach(el => el.remove());
       uploadSection.appendChild(link);
       break;
 
@@ -469,6 +491,29 @@ endBtn.addEventListener('click', async () => {
     console.error('[GhostCue] End session failed', e);
   }
 });
+
+// Refresh button — calls the manual broadcast endpoint to re-fetch questions
+if (refreshBtn) {
+  refreshBtn.addEventListener('click', async () => {
+    if (!candidateId) {
+      setUploadStatus('No candidate loaded yet', 'error');
+      return;
+    }
+    try {
+      refreshBtn.textContent = 'Refreshing...';
+      const res = await fetch(`${API}/api/candidates/${candidateId}/broadcast`, { method: 'POST' });
+      const json = await res.json();
+      if (!res.ok) {
+        setUploadStatus(json.error || 'Refresh failed', 'error');
+      }
+      // questions_ready will arrive via WS and re-render automatically
+      setTimeout(() => { refreshBtn.textContent = 'Refresh questions'; }, 2000);
+    } catch(e) {
+      refreshBtn.textContent = 'Refresh questions';
+      setUploadStatus('Cannot reach agent', 'error');
+    }
+  });
+}
 
 // ════════════════════════════════
 // 7. Drag, Minimize, Pin, Close

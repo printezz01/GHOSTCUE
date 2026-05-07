@@ -27,6 +27,7 @@ import { healthCheck as ramHealthCheck, readCandidate, listCandidates, appendSes
 import { setWebSocketServer, broadcastEvent } from './alert-dispatcher.js';
 import { start as startLoop, setActiveCandidate, getActiveCandidate, pushChunk, resetSession } from './loop.js';
 import { startAll as startHeartbeat, registerCallbacks, forceSessionEnd, shutdown as shutdownHeartbeat } from './heartbeat-watcher.js';
+import chokidar from 'chokidar';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -285,6 +286,35 @@ app.get('/api/status', (req, res) => {
   });
 });
 
+// ── Phase 4 — Manual broadcast recovery endpoint ──
+// Reads a candidate YAML and re-broadcasts questions_ready to all WS clients.
+// Useful when the auto-broadcast was missed (overlay was closed/refreshing).
+app.post('/api/candidates/:id/broadcast', (req, res) => {
+  const candidate = readCandidate(req.params.id);
+  if (!candidate) {
+    return res.status(404).json({ error: 'Candidate not found' });
+  }
+
+  const allQuestions = buildQuestionsPayload(candidate);
+  if (!allQuestions) {
+    return res.status(400).json({ error: 'Candidate has no generated questions yet' });
+  }
+
+  broadcastEvent('questions_ready', {
+    candidate_id: candidate.candidate_id,
+    candidate_name: candidate.name,
+    questions: allQuestions,
+    competencies: ['Technical Depth', 'System Design', 'Behavioral', 'Role Specific']
+  });
+
+  // Count connected clients
+  let clientCount = 0;
+  wss.clients.forEach(c => { if (c.readyState === 1) clientCount++; });
+
+  console.log(`[API] Manual broadcast for ${candidate.name} → ${clientCount} client(s)`);
+  res.json({ status: 'ok', broadcast_to: clientCount });
+});
+
 const httpServer = createServer(app);
 
 // ────────────────────────────────────────────
@@ -358,73 +388,172 @@ wss.on('connection', (ws, req) => {
     activeCandidate: getActiveCandidate(),
     candidateCount: listCandidates().length
   }));
+
+  // ── Phase 3 — Send latest parsed candidate to newly connected client ──
+  // Overlay refresh should never require re-uploading a resume.
+  // Find the most recently created candidate that has questions and send immediately.
+  try {
+    const latestCandidate = getMostRecentCandidate();
+    if (latestCandidate) {
+      const questions = buildQuestionsPayload(latestCandidate);
+      if (questions && questions.length > 0) {
+        ws.send(JSON.stringify({
+          event: 'questions_ready',
+          data: {
+            candidate_id: latestCandidate.candidate_id,
+            candidate_name: latestCandidate.name,
+            questions,
+            competencies: ['Technical Depth', 'System Design', 'Behavioral', 'Role Specific'],
+            timestamp: new Date().toISOString()
+          }
+        }));
+        console.log(`[WS] Sent latest candidate to new client: ${latestCandidate.candidate_id}`);
+      }
+    }
+  } catch (err) {
+    // Non-fatal — new clients still connect even if we can't send history
+    console.error(`[WS] Failed to send latest candidate on connect: ${err.message}`);
+  }
 });
 
 // ────────────────────────────────────────────
 // Start everything
 // ────────────────────────────────────────────
 
+// ────────────────────────────────────────────
+// Shared helpers — used by broadcast, connect handler, and YAML watcher
+// ────────────────────────────────────────────
+
+/**
+ * Flatten a candidate's generated_questions into the array format the overlay expects.
+ * Returns null if the candidate has no questions yet.
+ */
+function buildQuestionsPayload(candidate) {
+  const gq = candidate?.generated_questions;
+  if (!gq) return null;
+
+  const all = [
+    ...(gq.technical || []).map(q => ({ text: q, competency: 'Technical Depth' })),
+    ...(gq.system_design || []).map(q => ({ text: q, competency: 'System Design' })),
+    ...(gq.behavioral || []).map(q => ({ text: q, competency: 'Behavioral' })),
+    ...(gq.role_specific || []).map(q => ({ text: q, competency: 'Role Specific' }))
+  ];
+
+  return all.length > 0 ? all : null;
+}
+
+/**
+ * Return the most recently created candidate that has questions.
+ * Scans all YAMLs, sorts by created_at descending.
+ */
+function getMostRecentCandidate() {
+  const ids = listCandidates();
+  const candidates = ids
+    .map(id => { try { return readCandidate(id); } catch { return null; } })
+    .filter(Boolean)
+    .filter(c => buildQuestionsPayload(c) !== null)
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+  return candidates[0] || null;
+}
+
+// ────────────────────────────────────────────
+// Phase 1+2 — YAML watcher on memory/candidates/
+//
+// Instead of polling after a resume drop, we watch the output directory
+// for new/changed YAML files. When question-gen.py finishes writing, this
+// fires immediately — no timeout, no blocking, no missed broadcasts.
+//
+// 120s timeout — Groq parsing can take 30–60s on slow networks
+// (The watcher itself has no timeout — it just listens forever)
+// ────────────────────────────────────────────
+
+const CANDIDATES_DIR = path.join(PROJECT_ROOT, 'memory', 'candidates');
+
+// Track which candidate IDs we've already broadcast so we don't double-fire
+// on a chokidar 'change' event that is unrelated to question generation.
+const broadcastedCandidates = new Set();
+
+// Persist the time a resume was last dropped so we can filter YAML events
+// to only those created after the most recent upload.
+let lastResumeDropTime = 0;
+
+const yamlWatcher = chokidar.watch(CANDIDATES_DIR, {
+  ignored: /(^|[\/\\])[\.#_]|_SCHEMA\.yaml|_health_check\.tmp/,  // skip schema, temp files
+  ignoreInitial: true,          // don't fire for YAMLs that already existed at startup
+  awaitWriteFinish: {
+    stabilityThreshold: 1500,   // wait 1.5s after last write before firing (parser writes incrementally)
+    pollInterval: 200
+  }
+});
+
+yamlWatcher.on('add', (filePath) => handleYamlEvent(filePath, 'add'));
+yamlWatcher.on('change', (filePath) => handleYamlEvent(filePath, 'change'));
+
+/**
+ * Called when a YAML file in memory/candidates/ is created or updated.
+ * Reads the file, checks for questions, and broadcasts if ready.
+ */
+function handleYamlEvent(filePath, eventType) {
+  // Only care about candidate YAML files (not schema or temp files)
+  if (!filePath.endsWith('.yaml')) return;
+  const baseName = path.basename(filePath);
+  if (baseName.startsWith('_')) return;
+
+  // Extract candidate ID from filename (e.g. abc-123.yaml → abc-123)
+  const candidateId = baseName.replace('.yaml', '');
+
+  // Debounce: skip if we already broadcast for this candidate in this session
+  // (question-gen.py may trigger multiple 'change' events as it writes)
+  if (broadcastedCandidates.has(candidateId)) return;
+
+  try {
+    const candidate = readCandidate(candidateId);
+    if (!candidate) return;
+
+    const questions = buildQuestionsPayload(candidate);
+    if (!questions) return; // questions not written yet — another change event will come
+
+    // Only broadcast for candidates created after the last resume drop
+    // (prevents re-broadcasting old candidates on unrelated YAML edits)
+    const createdAt = new Date(candidate.created_at).getTime();
+    if (createdAt < lastResumeDropTime - 5000) {
+      return; // this YAML predates the current upload session
+    }
+
+    // Mark as broadcast so we don't fire again on subsequent change events
+    broadcastedCandidates.add(candidateId);
+
+    broadcastEvent('questions_ready', {
+      candidate_id: candidateId,
+      candidate_name: candidate.name,
+      questions,
+      competencies: ['Technical Depth', 'System Design', 'Behavioral', 'Role Specific']
+    });
+
+    let clientCount = 0;
+    wss.clients.forEach(c => { if (c.readyState === 1) clientCount++; });
+    console.log(`[WS] Broadcast questions_ready to ${clientCount} client(s) — ${candidate.name} (${questions.length} questions)`);
+
+  } catch (err) {
+    console.error(`[HEARTBEAT] Failed to broadcast from YAML watcher: ${err.message}`);
+  }
+}
+
 // Register heartbeat callbacks
 registerCallbacks({
   onResume: (filePath) => {
-    // Trigger 1 fired — resume detected by chokidar.
-    // Log and broadcast to all connected clients (overlay, terminal, etc.)
+    // Trigger 1 fired — resume detected by chokidar on input/resumes/.
+    // Record the drop time so the YAML watcher can filter correctly.
+    lastResumeDropTime = Date.now();
     console.log(`[HEARTBEAT] Resume received: ${filePath}`);
     broadcastEvent('resume_received', { path: filePath });
 
-    // Phase 3: After the resume parser completes and writes to Cognitive RAM,
-    // we broadcast questions_ready so the overlay can populate its questions panel.
-    // We poll for the candidate YAML to appear (parser runs as a child process).
-    const baseName = path.basename(filePath, '.pdf');
-    let pollCount = 0;
-    const pollInterval = setInterval(() => {
-      pollCount++;
-      // Check if any new candidate was created in the last 30 seconds
-      const candidates = listCandidates();
-      for (const cid of candidates) {
-        const candidate = readCandidate(cid);
-        if (candidate && candidate.generated_questions) {
-          const hasQuestions =
-            (candidate.generated_questions.technical?.length > 0) ||
-            (candidate.generated_questions.system_design?.length > 0) ||
-            (candidate.generated_questions.behavioral?.length > 0) ||
-            (candidate.generated_questions.role_specific?.length > 0);
-
-          // Check if this candidate was created recently (within last 60s)
-          const createdAt = new Date(candidate.created_at).getTime();
-          const now = Date.now();
-          if (hasQuestions && (now - createdAt) < 60000) {
-            // Flatten all question categories into a single array for the overlay
-            const allQuestions = [
-              ...(candidate.generated_questions.technical || []).map(q => ({ text: q, competency: 'Technical Depth' })),
-              ...(candidate.generated_questions.system_design || []).map(q => ({ text: q, competency: 'System Design' })),
-              ...(candidate.generated_questions.behavioral || []).map(q => ({ text: q, competency: 'Behavioral' })),
-              ...(candidate.generated_questions.role_specific || []).map(q => ({ text: q, competency: 'Role Specific' }))
-            ];
-
-            const competencies = ['Technical Depth', 'System Design', 'Behavioral', 'Role Specific'];
-
-            // Broadcast questions_ready to all connected clients
-            broadcastEvent('questions_ready', {
-              candidate_id: cid,
-              candidate_name: candidate.name,
-              questions: allQuestions,
-              competencies
-            });
-
-            console.log(`[HEARTBEAT] Questions ready for ${candidate.name} (${allQuestions.length} questions)`);
-            clearInterval(pollInterval);
-            return;
-          }
-        }
-      }
-
-      // Give up after 30 seconds (60 polls × 500ms)
-      if (pollCount >= 60) {
-        console.log('[HEARTBEAT] Timed out waiting for questions — parser may still be running');
-        clearInterval(pollInterval);
-      }
-    }, 500);
+    // Phase 1+2: Parser runs as a non-blocking background subprocess (spawned by
+    // heartbeat-watcher.js). We do NOT poll or wait here.
+    // The yamlWatcher above on memory/candidates/ will fire questions_ready
+    // automatically when question-gen.py finishes writing — no timeout needed.
+    console.log('[HEARTBEAT] Parser running in background — will broadcast on completion');
   },
   onSilence: () => {
     console.log('[HEARTBEAT] Session ended (silence detected)');
