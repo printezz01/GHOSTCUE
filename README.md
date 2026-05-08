@@ -249,6 +249,8 @@ GHOSTCUE/
 | `session_start` | Server → Client | Session began |
 | `session_end` | Server → Client | Session ended |
 | `questions_ready` | Server → Client | Generated questions after resume parse |
+
+DEMO VIDEO :  https://drive.google.com/file/d/1InIKlLsyZf3xSTd3F_QhcDyF6X3gR2Jf/view?usp=sharing
 | `resume_uploaded` | Server → Client | Resume file received by agent |
 
 ## License
